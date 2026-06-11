@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riichi Score Tracker</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f4f0; --bg3: #eeecea;
+  --text: #1a1a18; --text2: #5a5a56; --text3: #9a9892;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+  --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #0C447C;
+  --green: #0F6E56; --green-bg: #E1F5EE; --green-text: #085041;
+  --red: #A32D2D; --red-bg: #FCEBEB; --red-text: #791F1F;
+  --warn: #854F0B; --warn-bg: #FAEEDA; --warn-text: #633806;
+  --radius: 8px; --radius-lg: 12px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+    --text: #e8e6de; --text2: #a8a69e; --text3: #68665e;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    --blue: #85B7EB; --blue-bg: #0c2a42; --blue-text: #B5D4F4;
+    --green: #5DCAA5; --green-bg: #062820; --green-text: #9FE1CB;
+    --red: #F09595; --red-bg: #3a1010; --red-text: #F7C1C1;
+    --warn: #EF9F27; --warn-bg: #2e1e06; --warn-text: #FAC775;
+  }
+}
+body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; }
+.app { max-width: 680px; margin: 0 auto; padding: 1rem; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 13px; color: var(--text2); }
+input[type=text], input[type=number], input[type=date] {
+  padding: 7px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius);
+  background: var(--bg2); color: var(--text); font-family: var(--font); font-size: 14px;
+  width: 100%; outline: none; transition: border-color .15s;
+}
+input:focus { border-color: var(--blue); }
+.btn { cursor: pointer; font-family: var(--font); font-size: 13px; padding: 7px 14px;
+  border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent;
+  color: var(--text); transition: background .12s; }
+.btn:hover { background: var(--bg2); }
+.btn.primary { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue); }
+.btn.primary:hover { opacity: .85; }
+.btn.danger { background: var(--red-bg); color: var(--red-text); border-color: var(--red); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tabs { display: flex; border-bottom: 0.5px solid var(--border); margin-bottom: 1rem; }
+.tab { padding: 8px 16px; font-size: 14px; cursor: pointer; border: none;
+  background: transparent; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--text2);
+  padding: 6px 8px; border-bottom: 0.5px solid var(--border); }
+td { padding: 8px 8px; border-bottom: 0.5px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+.positive { color: var(--green-text); } .negative { color: var(--red-text); }
+.badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+  font-size: 11px; font-weight: 500; text-align: center; line-height: 22px;
+  background: var(--bg2); color: var(--text2); }
+.room-code { font-size: 28px; font-weight: 600; letter-spacing: .15em;
+  color: var(--blue-text); background: var(--blue-bg); border-radius: var(--radius);
+  padding: 10px 20px; display: inline-block; }
+.error { color: var(--red-text); font-size: 12px; margin-top: 4px; }
+.status { font-size: 12px; color: var(--text3); }
+.status.ok::before { content: '● '; color: var(--green-text); }
+.status.err::before { content: '● '; color: var(--red-text); }
+.empty { text-align: center; padding: 2rem; color: var(--text3); font-size: 14px; }
+.header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+#lobby { display: flex; flex-direction: column; gap: 1rem; max-width: 400px; margin: 3rem auto; }
+#lobby h1 { font-size: 22px; font-weight: 500; }
+#lobby .divider { text-align: center; color: var(--text3); font-size: 13px; position: relative; }
+#lobby .divider::before, #lobby .divider::after {
+  content: ''; position: absolute; top: 50%; width: 42%; height: 0.5px; background: var(--border2); }
+#lobby .divider::before { left: 0; } #lobby .divider::after { right: 0; }
+.hanchan-block { border-bottom: 0.5px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+.hanchan-block:last-child { border-bottom: none; margin-bottom: 0; }
+.hanchan-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+.h-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; font-size: 13px; margin-bottom: 2px; }
+.h-label { color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LOBBY -->
+<div id="lobby">
+  <h1>🀄 Riichi Score Tracker</h1>
+  <div class="card">
+    <div class="label">Create new session</div>
+    <div class="field" style="margin-bottom:8px">
+      <label>Competition name</label>
+      <input type="text" id="new-comp-name" placeholder="Rode Lotus — Spring 2026">
+    </div>
+    <div class="field" style="margin-bottom:8px">
+      <label>Date</label>
+      <input type="date" id="new-comp-date">
+    </div>
+    <div class="grid2" style="margin-bottom:8px">
+      <div class="field"><label>Player 1</label><input type="text" id="new-p0" placeholder="East"></div>
+      <div class="field"><label>Player 2</label><input type="text" id="new-p1" placeholder="South"></div>
+      <div class="field"><label>Player 3</label><input type="text" id="new-p2" placeholder="West"></div>
+      <div class="field"><label>Player 4</label><input type="text" id="new-p3" placeholder="North"></div>
+    </div>
+    <button class="btn primary" onclick="createSession()">Create session</button>
+    <div id="create-error" class="error" style="display:none"></div>
+  </div>
+  <div class="divider">or join existing</div>
+  <div class="card">
+    <div class="label">Join with room code</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="join-code" placeholder="LOTUS4" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:.1em;font-size:16px;font-weight:500"
+        onkeydown="if(event.key==='Enter')joinSession()">
+      <button class="btn primary" onclick="joinSession()">Join</button>
+    </div>
+    <div id="join-error" class="error" style="display:none"></div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until session loaded) -->
+<div id="main" style="display:none">
+  <div class="card" style="margin-bottom:.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div id="session-title" style="font-size:18px;font-weight:500"></div>
+        <div id="session-date" style="font-size:13px;color:var(--text2)"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="room-code" id="room-display"></div>
+        <div id="poll-status" class="status ok" style="margin-top:4px">Live</div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn" onclick="leaveSession()" style="font-size:12px">Leave session</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('scorer')" id="tab-scorer">Scorer</button>
+    <button class="tab" onclick="showTab('leaderboard')" id="tab-leaderboard">Leaderboard</button>
+    <button class="tab" onclick="showTab('history')" id="tab-history">History</button>
+  </div>
+
+  <!-- SCORER -->
+  <div id="view-scorer">
+    <div class="card">
+      <div class="header-row">
+        <span id="hanchan-label" style="font-size:15px;font-weight:500">Hanchan 1</span>
+        <span id="total-check" class="status">Total: 0 / 120 000</span>
+      </div>
+      <div class="grid4" id="score-inputs">
+        <div class="field"><label id="sl0">East</label><input type="number" id="s0" placeholder="30000" oninput="updateCheck()"></div>
+        <div class="field"><label id="sl1">South</label><input type="number" id="s1" placeholder="30000" oninput="updateCheck()"></div>
+        <div class="field"><label id="sl2">West</label><input type="number" id="s2" placeholder="30000" oninput="updateCheck()"></div>
+        <div class="field"><label id="sl3">North</label><input type="number" id="s3" placeholder="30000" oninput="updateCheck()"></div>
+      </div>
+      <div id="score-error" class="error" style="display:none">Scores must total 120 000</div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="addHanchan()">+ Add hanchan</button>
+        <button class="btn" onclick="clearInputs()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="view-leaderboard" style="display:none">
+    <div class="card">
+      <div id="leaderboard-container"><div class="empty">No hanchans recorded yet</div></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="view-history" style="display:none">
+    <div class="card">
+      <div id="history-container"><div class="empty">No hanchans recorded yet</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const API = 'api.php';
+const UMA = [15000, 5000, -5000, -15000];
+const START = 30000;
+const TOTAL = 120000;
+
+let roomCode = null;
+let sessionData = null;
+let hanchans = [];
+let pollTimer = null;
+
+// ---- Lobby ----
+
+async function createSession() {
+  const body = {
+    comp_name: document.getElementById('new-comp-name').value,
+    comp_date: document.getElementById('new-comp-date').value,
+    player1: document.getElementById('new-p0').value || 'East',
+    player2: document.getElementById('new-p1').value || 'South',
+    player3: document.getElementById('new-p2').value || 'West',
+    player4: document.getElementById('new-p3').value || 'North',
+  };
+  try {
+    const r = await fetch(API + '?action=new_session', { method: 'POST', body: JSON.stringify(body) });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    loadSession(data.room_code);
+  } catch(e) {
+    showError('create-error', e.message);
+  }
+}
+
+async function joinSession() {
+  const code = document.getElementById('join-code').value.toUpperCase().trim();
+  if (!code) return;
+  try {
+    const r = await fetch(API + '?action=get_session&room=' + code);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    loadSession(code);
+  } catch(e) {
+    showError('join-error', e.message);
+  }
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+// ---- Session ----
+
+function loadSession(code) {
+  roomCode = code;
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('room-display').textContent = code;
+  // Store in URL so page refresh keeps you in the session
+  history.replaceState(null, '', '?room=' + code);
+  fetchState();
+  pollTimer = setInterval(fetchState, 2000);
+}
+
+function leaveSession() {
+  clearInterval(pollTimer);
+  roomCode = null; sessionData = null; hanchans = [];
+  history.replaceState(null, '', location.pathname);
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('lobby').style.display = 'flex';
+}
+
+async function fetchState() {
+  try {
+    const r = await fetch(API + '?action=get_session&room=' + roomCode);
+    const data = await r.json();
+    if (data.error) { setPollStatus(false); return; }
+    sessionData = data.session;
+    hanchans = data.hanchans;
+    setPollStatus(true);
+    updateSessionHeader();
+    updateLabels();
+    updateHanchanLabel();
+    if (document.getElementById('view-leaderboard').style.display !== 'none') renderLeaderboard();
+    if (document.getElementById('view-history').style.display !== 'none') renderHistory();
+  } catch(e) { setPollStatus(false); }
+}
+
+function setPollStatus(ok) {
+  const el = document.getElementById('poll-status');
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+  el.textContent = ok ? 'Live' : 'Reconnecting…';
+}
+
+function updateSessionHeader() {
+  document.getElementById('session-title').textContent = sessionData.comp_name || 'Untitled session';
+  document.getElementById('session-date').textContent = sessionData.comp_date || '';
+}
+
+function updateLabels() {
+  ['player1','player2','player3','player4'].forEach((k, i) => {
+    document.getElementById('sl' + i).textContent = sessionData[k] || ['East','South','West','North'][i];
+  });
+}
+
+function updateHanchanLabel() {
+  document.getElementById('hanchan-label').textContent = 'Hanchan ' + (hanchans.length + 1);
+}
+
+// ---- Scorer ----
+
+function updateCheck() {
+  const vals = [0,1,2,3].map(i => parseInt(document.getElementById('s'+i).value)||0);
+  const total = vals.reduce((a,b)=>a+b,0);
+  const el = document.getElementById('total-check');
+  el.textContent = 'Total: ' + total.toLocaleString() + ' / 120 000';
+  el.className = 'status ' + (total === TOTAL ? 'ok' : '');
+}
+
+function clearInputs() {
+  [0,1,2,3].forEach(i => document.getElementById('s'+i).value = '');
+  document.getElementById('score-error').style.display = 'none';
+  document.getElementById('total-check').textContent = 'Total: 0 / 120 000';
+  document.getElementById('total-check').className = 'status';
+}
+
+function calcPoints(scores) {
+  const indexed = scores.map((s,i)=>({i,s})).sort((a,b)=>b.s-a.s);
+  return scores.map((s,pos) => {
+    const rank = indexed.findIndex(x=>x.i===pos);
+    return Math.round((s - START + UMA[rank]) / 1000);
+  });
+}
+
+async function addHanchan() {
+  const scores = [0,1,2,3].map(i => parseInt(document.getElementById('s'+i).value)||0);
+  if (scores.reduce((a,b)=>a+b,0) !== TOTAL) {
+    document.getElementById('score-error').style.display = 'block'; return;
+  }
+  document.getElementById('score-error').style.display = 'none';
+  const points = calcPoints(scores);
+  const body = {
+    room_code: roomCode,
+    score1: scores[0], score2: scores[1], score3: scores[2], score4: scores[3],
+    points1: points[0], points2: points[1], points3: points[2], points4: points[3],
+  };
+  try {
+    const r = await fetch(API + '?action=add_hanchan', { method: 'POST', body: JSON.stringify(body) });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    clearInputs();
+    await fetchState();
+  } catch(e) { alert('Error saving hanchan: ' + e.message); }
+}
+
+// ---- Leaderboard ----
+
+function renderLeaderboard() {
+  const el = document.getElementById('leaderboard-container');
+  if (!hanchans.length) { el.innerHTML = '<div class="empty">No hanchans recorded yet</div>'; return; }
+  const keys = ['points1','points2','points3','points4'];
+  const pkeys = ['player1','player2','player3','player4'];
+  const totals = [0,1,2,3].map(i => hanchans.reduce((s,h)=>s+parseInt(h[keys[i]]),0));
+  const ranked = [0,1,2,3].map(i=>({i,total:totals[i]})).sort((a,b)=>b.total-a.total);
+  let html = '<table><thead><tr><th>Rank</th><th>Player</th>';
+  hanchans.forEach((_,h) => html += '<th style="text-align:right">H'+(h+1)+'</th>');
+  html += '<th style="text-align:right">Total</th></tr></thead><tbody>';
+  ranked.forEach((r,rank) => {
+    const name = sessionData[pkeys[r.i]] || ['East','South','West','North'][r.i];
+    html += `<tr><td><span class="badge">${rank+1}</span></td><td style="${rank===0?'font-weight:500':''}">${name}</td>`;
+    hanchans.forEach(h => {
+      const p = parseInt(h[keys[r.i]]);
+      html += `<td style="text-align:right" class="${p>0?'positive':p<0?'negative':''}">${p>0?'+':''}${p}</td>`;
+    });
+    html += `<td style="text-align:right;font-weight:500" class="${r.total>0?'positive':r.total<0?'negative':''}">${r.total>0?'+':''}${r.total}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ---- History ----
+
+function renderHistory() {
+  const el = document.getElementById('history-container');
+  if (!hanchans.length) { el.innerHTML = '<div class="empty">No hanchans recorded yet</div>'; return; }
+  const pkeys = ['player1','player2','player3','player4'];
+  const skeys = ['score1','score2','score3','score4'];
+  const ptkeys = ['points1','points2','points3','points4'];
+  let html = '';
+  hanchans.forEach((h,idx) => {
+    html += `<div class="hanchan-block"><div class="hanchan-title">Hanchan ${idx+1}</div>`;
+    html += `<div class="h-row"><span class="h-label">Player</span><span class="h-label">Score</span><span class="h-label">Points</span><span class="h-label">Rank</span></div>`;
+    const ranked = [0,1,2,3].map(i=>({i,s:parseInt(h[skeys[i]])})).sort((a,b)=>b.s-a.s);
+    [0,1,2,3].forEach(i => {
+      const name = sessionData[pkeys[i]] || ['East','South','West','North'][i];
+      const p = parseInt(h[ptkeys[i]]);
+      const rank = ranked.findIndex(r=>r.i===i)+1;
+      html += `<div class="h-row"><span>${name}</span><span>${parseInt(h[skeys[i]]).toLocaleString()}</span><span class="${p>0?'positive':p<0?'negative':''}">${p>0?'+':''}${p}</span><span>${rank}</span></div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ---- Tabs ----
+
+function showTab(name) {
+  ['scorer','leaderboard','history'].forEach(t => {
+    document.getElementById('view-'+t).style.display = t===name ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===name);
+  });
+  if (name==='leaderboard') renderLeaderboard();
+  if (name==='history') renderHistory();
+}
+
+// ---- Init: auto-join from URL ----
+
+window.onload = function() {
+  const params = new URLSearchParams(location.search);
+  const room = params.get('room');
+  if (room) {
+    document.getElementById('join-code').value = room;
+    joinSession();
+  }
+};
+</script>
+</body>
+</html>
