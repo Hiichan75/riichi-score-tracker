@@ -1,9 +1,8 @@
 <?php
-// Fill these in with your Hostinger MySQL credentials
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'riichi');
-define('DB_USER', 'your_db_user');
-define('DB_PASS', 'your_db_password');
+define('DB_HOST', 'sql308.infinityfree.com');
+define('DB_NAME', 'if0_42159439_riichi');
+define('DB_USER', 'if0_42159439');
+define('DB_PASS', 'Q5PohExa1g');
 
 function getDB() {
     $pdo = new PDO(
